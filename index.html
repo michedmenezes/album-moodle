@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Álbum de Fatoração</title>
     <style>
         :root {
@@ -12,16 +12,25 @@
             --cor-azul: #0033a0;
         }
 
-        #album-moodle-container {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--cor-primaria);
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: radial-gradient(circle at top, rgba(255,204,0,0.18), transparent 35%),
+                        linear-gradient(180deg, #071f0c 0%, #011009 100%);
             color: white;
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        #album-moodle-container {
             padding: 20px;
             border-radius: 15px;
             max-width: 950px;
             margin: 20px auto;
+            background-color: var(--cor-primaria);
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             position: relative;
+            box-sizing: border-box;
         }
 
         #album-moodle-container h1 { 
@@ -31,6 +40,7 @@
             letter-spacing: 2px; 
             margin-bottom: 5px; 
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5); 
+            margin-top: 0;
         }
 
         .subtitulo { text-align: center; font-size: 0.9em; margin-bottom: 20px; color: #fff; }
@@ -56,14 +66,20 @@
             align-items: center; 
             justify-content: center; 
             position: relative; 
-            transition: all 0.3s; 
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
             overflow: hidden; 
             user-select: none;
+            -webkit-user-select: none;
+            min-height: 170px;
         }
 
-        .slot.drag-over { border-color: var(--cor-secundaria); transform: scale(1.05); box-shadow: 0 0 15px rgba(255,204,0,0.5); }
+        .slot.drag-over { 
+            border-color: var(--cor-secundaria); 
+            transform: scale(1.04); 
+            box-shadow: 0 0 18px rgba(255,204,0,0.8); 
+        }
         
-        /* Imagem de fundo preta e branca com desfoque de 5px aplicado */
+        /* Imagem de fundo preta e branca com desfoque */
         .foto-pb { 
             position: absolute; 
             top: 0; 
@@ -74,7 +90,8 @@
             filter: grayscale(100%) brightness(0.35) blur(5px); 
             z-index: 0; 
             opacity: 0.65; 
-            transform: scale(1.1); /* Evita bordas brancas causadas pelo desfoque */
+            transform: scale(1.15); /* Aumentado ligeiramente para evitar frisos brancos causados pelo blur nas bordas */
+            pointer-events: none;
         }
         
         .foto-colorida { 
@@ -88,12 +105,26 @@
             border: 3px solid var(--cor-secundaria); 
             box-sizing: border-box; 
             border-radius: 8px; 
-            animation: brilhoColado 0.5s ease-out forwards; 
+            animation: brilhoColado 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
+            pointer-events: none;
         }
         
-        @keyframes brilhoColado { 0% { transform: scale(1.1); filter: brightness(2); } 100% { transform: scale(1); filter: brightness(1); } }
+        @keyframes brilhoColado { 
+            0% { transform: scale(1.15); filter: brightness(2); opacity: 0; }
+            100% { transform: scale(1); filter: brightness(1); opacity: 1; } 
+        }
         
-        .slot-numero { font-size: 2.8em; font-weight: 900; color: rgba(255,255,255,0.9); text-shadow: 2px 2px 5px #000; z-index: 2; line-height: 1; text-align: center; padding: 0 5px; }
+        .slot-numero { 
+            font-size: 2.5em; 
+            font-weight: 900; 
+            color: rgba(255,255,255,0.9); 
+            text-shadow: 2px 2px 5px #000; 
+            z-index: 2; 
+            line-height: 1; 
+            text-align: center; 
+            padding: 0 5px; 
+            pointer-events: none;
+        }
         
         .sticker { 
             width: auto;
@@ -101,38 +132,66 @@
             height: 55px; 
             background: white; 
             color: #333; 
-            border-radius: 8px; 
+            border-radius: 10px; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
             font-size: 1.05em; 
             font-weight: bold; 
-            box-shadow: 3px 3px 10px rgba(0,0,0,0.4); 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
             cursor: grab; 
             z-index: 20; 
             border: 2px solid #ccc;
             background: linear-gradient(135deg, #fff 0%, #e0e0e0 100%);
-            touch-action: none;
-            padding: 0 8px;
+            touch-action: none; /* Previne gestos padrões do navegador de arrastar a página */
+            padding: 0 12px;
+            user-select: none;
+            -webkit-user-select: none;
+            box-sizing: border-box;
         }
 
         .sticker:active { cursor: grabbing; }
+        .sticker.dragging { 
+            transform: scale(1.1); 
+            opacity: 0.9; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4); 
+            border-color: var(--cor-secundaria);
+        }
+
+        @media (max-width: 700px) {
+            #album-moodle-container { padding: 15px; margin: 10px auto; border-radius: 8px; }
+            .album-grid { padding: 15px; gap: 10px; }
+            .pacotinho-container { padding: 15px; }
+            .controles { flex-direction: column; align-items: stretch; gap: 10px; }
+            .btn-nav { width: 100%; padding: 12px; }
+            #page-info { width: 100%; text-align: center; order: -1; }
+            .sticker { min-width: 100px; height: 50px; font-size: 1em; }
+        }
+
+        @media (max-width: 520px) {
+            .album-grid { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
+            .slot-numero { font-size: 2em; }
+            .btn-reset { width: 100%; box-sizing: border-box; }
+            .modal-content { margin: 0 15px; width: calc(100% - 30px); }
+            .feedback { left: 15px; right: 15px; width: auto; text-align: center; }
+        }
         
         .pacotinho-container { margin-top: 30px; background: var(--cor-azul); padding: 20px; border-radius: 12px; text-align: center; border: 2px solid #fff; }
         .pacotinho-titulo { color: #fff; font-weight: bold; margin-bottom: 15px; display: block; font-size: 1.2em; text-transform: uppercase; }
         .stickers-pool { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; min-height: 80px; }
         
         .controles { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; margin-bottom: 15px; }
-        .btn-nav { background: var(--cor-secundaria); border: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; color: #000; cursor: pointer; transition: 0.2s; }
-        .btn-nav:hover { background: #fff; transform: translateY(-2px); }
-        .btn-nav:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-nav { background: var(--cor-secundaria); border: none; padding: 10px 18px; border-radius: 5px; font-weight: bold; color: #000; cursor: pointer; transition: transform 0.1s ease, background-color 0.2s ease; }
+        .btn-nav:hover, .btn-nav:focus { background: #fff; }
+        .btn-nav:active { transform: scale(0.97); }
+        .btn-nav:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; }
         
-        .btn-reset { background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.75em; margin-top: 10px; opacity: 0.7; }
-        .btn-reset:hover { opacity: 1; }
+        .btn-reset { background: #dc3545; color: white; border: none; padding: 10px 14px; border-radius: 6px; cursor: pointer; font-size: 0.9em; margin-top: 10px; opacity: 0.9; transition: opacity 0.2s ease, transform 0.2s ease; }
+        .btn-reset:hover, .btn-reset:focus { opacity: 1; transform: translateY(-1px); }
 
-        .feedback { position: fixed; top: 20px; right: 20px; padding: 15px 25px; border-radius: 8px; display: none; z-index: 1000; font-weight: bold; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .feedback { position: fixed; top: 20px; right: 20px; padding: 15px 25px; border-radius: 8px; display: none; z-index: 1000; font-weight: bold; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.3); max-width: calc(100% - 40px); word-break: break-word; transition: opacity 0.3s ease; opacity: 0; }
 
-        /* Modal customizado de confirmação (Evita usar confirm nativo no Moodle) */
+        /* Modal customizado de confirmação */
         .modal-reset {
             display: none;
             position: fixed;
@@ -150,19 +209,24 @@
             max-width: 400px;
             text-align: center;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            color: #fff;
         }
         .modal-buttons {
             display: flex;
             justify-content: space-around;
             margin-top: 20px;
+            gap: 10px;
         }
         .btn-modal {
-            padding: 8px 20px;
+            padding: 10px 20px;
             border: none;
             border-radius: 5px;
             font-weight: bold;
             cursor: pointer;
+            flex: 1;
+            transition: transform 0.1s ease;
         }
+        .btn-modal:active { transform: scale(0.95); }
         .btn-confirmar { background: #dc3545; color: white; }
         .btn-cancelar { background: #6c757d; color: white; }
     </style>
@@ -193,7 +257,7 @@
     <div id="feedback" class="feedback"></div>
 </div>
 
-<!-- Modal Customizado para confirmação de reinício -->
+<!-- Modal Customizado -->
 <div id="modalReset" class="modal-reset">
     <div class="modal-content">
         <h3 style="color: var(--cor-secundaria); margin-top: 0;">Reiniciar Progresso?</h3>
@@ -243,7 +307,6 @@
     const itemsPerPage = 6;
     let solved = JSON.parse(localStorage.getItem('album_fatoracao_progresso_v2')) || {};
     
-    // Variáveis para gerenciar o embaralhamento estável
     let currentShuffledPage = -1;
     let shuffledStickers = [];
 
@@ -259,18 +322,16 @@
         const start = currentPage * itemsPerPage;
         const currentItems = database.slice(start, start + itemsPerPage);
 
-        // Se mudamos de página, gera uma nova ordem estável e embaralhada para os stickers
+        // Gera o embaralhamento uma vez quando entra na página
         if (currentShuffledPage !== currentPage) {
             currentShuffledPage = currentPage;
             shuffledStickers = [...currentItems].sort(() => Math.random() - 0.5);
         }
 
-        // Verifica se todas as figurinhas da página atual foram resolvidas/coladas
         const todasResolvidas = currentItems.every(item => solved[item.id]);
 
         pageInfo.innerText = `Página ${currentPage + 1} de ${totalPages}`;
         document.getElementById('btnAnterior').disabled = currentPage === 0;
-        // O botão Próxima só ativa se não for a última página E todas as figurinhas da página atual estiverem resolvidas
         document.getElementById('btnProxima').disabled = (currentPage === totalPages - 1) || !todasResolvidas;
 
         currentItems.forEach(item => {
@@ -283,39 +344,25 @@
                 slot.innerHTML = imgHTML;
                 slot.style.border = 'none';
             } else {
-                const imgHTML = item.img.startsWith('http') ? `<img src="${item.img}" class="foto-pb">` : '';
-                // Nome do professor removido e fundo com classe .foto-pb desbotada/desfocada
+                const imgHTML = item.img.startsWith('http') ? `<img src="${item.img}" class="foto-pb" alt="${item.p}">` : '';
                 slot.innerHTML = `
                     ${imgHTML}
                     <div class="slot-numero" style="font-size: ${item.n > 9999 ? '1.9em' : '2.5em'}">${item.n}</div>
                 `;
-                
-                slot.ondragover = (e) => e.preventDefault();
-                slot.ondragenter = () => slot.classList.add('drag-over');
-                slot.ondragleave = () => slot.classList.remove('drag-over');
-                slot.ondrop = (e) => {
-                    e.preventDefault();
-                    const draggedId = e.dataTransfer.getData('text');
-                    handleMatch(draggedId, item.id);
-                };
             }
             grid.appendChild(slot);
         });
 
-        // Apresenta as figurinhas usando a nossa ordem estável e embaralhada
         shuffledStickers.forEach(item => {
             if (!solved[item.id]) {
                 const sticker = document.createElement('div');
                 sticker.className = 'sticker';
-                sticker.draggable = true;
                 sticker.innerText = item.f;
                 sticker.dataset.id = item.id;
-                sticker.ondragstart = (e) => e.dataTransfer.setData('text', item.id);
                 
-                sticker.addEventListener('touchstart', handleTouchStart, {passive: false});
-                sticker.addEventListener('touchmove', handleTouchMove, {passive: false});
-                sticker.addEventListener('touchend', handleTouchEnd);
-
+                // Eventos unificados (PointerEvents lida com Mouse e Touch de forma muito mais estável)
+                sticker.addEventListener('pointerdown', handlePointerDown);
+                
                 pool.appendChild(sticker);
             }
         });
@@ -329,11 +376,10 @@
             render();
         } else {
             showFeedback("Ops! Esse resultado não pertence a este número.", "#dc3545");
-            document.querySelectorAll('.slot').forEach(s => s.classList.remove('drag-over'));
         }
+        document.querySelectorAll('.slot').forEach(s => s.classList.remove('drag-over'));
     }
 
-    // Modal de reiniciar customizado
     function mostrarModalReset() {
         document.getElementById('modalReset').style.display = 'flex';
     }
@@ -346,48 +392,134 @@
         solved = {};
         localStorage.removeItem('album_fatoracao_progresso_v2');
         currentPage = 0;
-        currentShuffledPage = -1; // Força re-embaralhar na primeira página
+        currentShuffledPage = -1;
         fecharModalReset();
         render();
-        showFeedback("Progresso reiniciado com sucesso!", "#0033a0");
+        showFeedback("Progresso reiniciado!", "#0033a0");
     }
 
     function showFeedback(msg, color) {
         const fb = document.getElementById('feedback');
-        fb.innerText = msg; fb.style.backgroundColor = color; fb.style.display = 'block';
-        setTimeout(() => { fb.style.display = 'none'; }, 2500);
+        fb.innerText = msg;
+        fb.style.backgroundColor = color;
+        fb.style.display = 'block';
+        
+        // Pequena pausa para disparar a transição CSS de opacidade
+        setTimeout(() => {
+            fb.style.opacity = '1';
+        }, 10);
+
+        setTimeout(() => { 
+            fb.style.opacity = '0'; 
+            setTimeout(() => { fb.style.display = 'none'; }, 300);
+        }, 2200);
     }
 
     document.getElementById('btnAnterior').onclick = () => { currentPage--; render(); };
     document.getElementById('btnProxima').onclick = () => { currentPage++; render(); };
 
-    let touchItem = null;
-    function handleTouchStart(e) {
-        touchItem = e.target;
-        touchItem.style.opacity = "0.5";
-    }
-    function handleTouchMove(e) {
-        if (!touchItem) return;
-        e.preventDefault();
-        let touch = e.touches[0];
-        touchItem.style.position = 'fixed';
-        touchItem.style.zIndex = '9999';
-        touchItem.style.left = touch.clientX - 60 + 'px';
-        touchItem.style.top = touch.clientY - 27 + 'px';
-    }
-    function handleTouchEnd(e) {
-        if (!touchItem) return;
-        touchItem.style.opacity = "1";
+    // MECANISMO ROBUSTO DE ARRASTAR E SOLTAR (POINTER EVENTS)
+    let activeDragItem = null;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let currentSlotUnderOver = null;
+
+    function handlePointerDown(e) {
+        // Apenas botão principal do mouse ou toque
+        if (e.button !== 0 && e.pointerType === 'mouse') return;
+
+        activeDragItem = e.currentTarget;
+        activeDragItem.classList.add('dragging');
         
-        let touch = e.changedTouches[0];
-        let targetSlot = document.elementFromPoint(touch.clientX, touch.clientY);
-        let slot = targetSlot ? targetSlot.closest('.slot') : null;
+        // Armazena coordenada inicial para cálculo de offsets
+        const rect = activeDragItem.getBoundingClientRect();
+        dragStartX = e.clientX - rect.left;
+        dragStartY = e.clientY - rect.top;
+
+        // Estiliza o elemento temporariamente para arrastar de forma suave
+        activeDragItem.style.position = 'fixed';
+        activeDragItem.style.width = `${rect.width}px`;
+        activeDragItem.style.height = `${rect.height}px`;
+        activeDragItem.style.zIndex = '9999';
+        activeDragItem.style.pointerEvents = 'none'; // Permite que elementFromPoint encontre o slot de fundo
+
+        moveAt(e.clientX, e.clientY);
+
+        document.addEventListener('pointermove', handlePointerMove);
+        document.addEventListener('pointerup', handlePointerUp);
+        
+        // Captura o pointer para que continue respondendo mesmo se sair do elemento
+        activeDragItem.setPointerCapture(e.pointerId);
+        e.preventDefault();
+    }
+
+    function moveAt(clientX, clientY) {
+        if (!activeDragItem) return;
+        activeDragItem.style.left = `${clientX - dragStartX}px`;
+        activeDragItem.style.top = `${clientY - dragStartY}px`;
+    }
+
+    function handlePointerMove(e) {
+        if (!activeDragItem) return;
+        moveAt(e.clientX, e.clientY);
+
+        // Localiza elemento abaixo do ponteiro
+        const elementUnder = document.elementFromPoint(e.clientX, e.clientY);
+        const slot = elementUnder ? elementUnder.closest('.slot') : null;
+
+        // Efeito de feedback visual ao passar por cima de um slot
+        if (slot !== currentSlotUnderOver) {
+            if (currentSlotUnderOver) {
+                currentSlotUnderOver.classList.remove('drag-over');
+            }
+            currentSlotUnderOver = slot;
+            if (currentSlotUnderOver && !currentSlotUnderOver.style.border.includes('none')) {
+                currentSlotUnderOver.classList.add('drag-over');
+            }
+        }
+    }
+
+    function handlePointerUp(e) {
+        if (!activeDragItem) return;
+
+        // Cancela captura do ponteiro
+        try {
+            activeDragItem.releasePointerCapture(e.pointerId);
+        } catch (err) {}
+
+        document.removeEventListener('pointermove', handlePointerMove);
+        document.removeEventListener('pointerup', handlePointerUp);
+
+        // Verifica o drop
+        const elementUnder = document.elementFromPoint(e.clientX, e.clientY);
+        const slot = elementUnder ? elementUnder.closest('.slot') : null;
+
+        const draggedId = activeDragItem.dataset.id;
+        
+        // Remove as customizações temporárias de estilo
+        activeDragItem.classList.remove('dragging');
+        activeDragItem.style.position = '';
+        activeDragItem.style.width = '';
+        activeDragItem.style.height = '';
+        activeDragItem.style.zIndex = '';
+        activeDragItem.style.pointerEvents = '';
+        activeDragItem.style.left = '';
+        activeDragItem.style.top = '';
+
+        const itemSaved = activeDragItem;
+        activeDragItem = null;
 
         if (slot) {
-            handleMatch(touchItem.dataset.id, slot.dataset.id);
+            const slotId = slot.dataset.id;
+            handleMatch(draggedId, slotId);
+        } else {
+            // Se errou ou soltou fora, reseta visualmente
+            if (currentSlotUnderOver) {
+                currentSlotUnderOver.classList.remove('drag-over');
+                currentSlotUnderOver = null;
+            }
+            render();
         }
-        touchItem = null;
-        render();
     }
 
     window.onload = render;
