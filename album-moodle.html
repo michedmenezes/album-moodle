@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Álbum de Fatoração</title>
+    <style>
+        :root {
+            --cor-primaria: #04662e;
+            --cor-secundaria: #ffcc00;
+            --cor-fundo-escuro: #023819;
+            --cor-azul: #0033a0;
+        }
+
+        #album-moodle-container {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--cor-primaria);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            max-width: 950px;
+            margin: 20px auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        #album-moodle-container h1 { 
+            text-align: center; 
+            color: var(--cor-secundaria); 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+            margin-bottom: 5px; 
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5); 
+        }
+
+        .subtitulo { text-align: center; font-size: 0.9em; margin-bottom: 20px; color: #fff; }
+        
+        .album-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); 
+            gap: 15px; 
+            background: var(--cor-fundo-escuro); 
+            padding: 20px; 
+            border-radius: 12px; 
+            min-height: 250px; 
+            border: 2px solid rgba(255,204,0,0.3); 
+        }
+        
+        .slot { 
+            aspect-ratio: 3/4; 
+            background: rgba(0,0,0,0.6); 
+            border: 2px dashed #888; 
+            border-radius: 8px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            position: relative; 
+            transition: all 0.3s; 
+            overflow: hidden; 
+            user-select: none;
+        }
+
+        .slot.drag-over { border-color: var(--cor-secundaria); transform: scale(1.05); box-shadow: 0 0 15px rgba(255,204,0,0.5); }
+        
+        /* Imagem de fundo preta e branca com desfoque de 5px aplicado */
+        .foto-pb { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            filter: grayscale(100%) brightness(0.35) blur(5px); 
+            z-index: 0; 
+            opacity: 0.65; 
+            transform: scale(1.1); /* Evita bordas brancas causadas pelo desfoque */
+        }
+        
+        .foto-colorida { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            z-index: 10; 
+            border: 3px solid var(--cor-secundaria); 
+            box-sizing: border-box; 
+            border-radius: 8px; 
+            animation: brilhoColado 0.5s ease-out forwards; 
+        }
+        
+        @keyframes brilhoColado { 0% { transform: scale(1.1); filter: brightness(2); } 100% { transform: scale(1); filter: brightness(1); } }
+        
+        .slot-numero { font-size: 2.8em; font-weight: 900; color: rgba(255,255,255,0.9); text-shadow: 2px 2px 5px #000; z-index: 2; line-height: 1; text-align: center; padding: 0 5px; }
+        
+        .sticker { 
+            width: auto;
+            min-width: 120px; 
+            height: 55px; 
+            background: white; 
+            color: #333; 
+            border-radius: 8px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 1.05em; 
+            font-weight: bold; 
+            box-shadow: 3px 3px 10px rgba(0,0,0,0.4); 
+            cursor: grab; 
+            z-index: 20; 
+            border: 2px solid #ccc;
+            background: linear-gradient(135deg, #fff 0%, #e0e0e0 100%);
+            touch-action: none;
+            padding: 0 8px;
+        }
+
+        .sticker:active { cursor: grabbing; }
+        
+        .pacotinho-container { margin-top: 30px; background: var(--cor-azul); padding: 20px; border-radius: 12px; text-align: center; border: 2px solid #fff; }
+        .pacotinho-titulo { color: #fff; font-weight: bold; margin-bottom: 15px; display: block; font-size: 1.2em; text-transform: uppercase; }
+        .stickers-pool { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; min-height: 80px; }
+        
+        .controles { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; margin-bottom: 15px; }
+        .btn-nav { background: var(--cor-secundaria); border: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; color: #000; cursor: pointer; transition: 0.2s; }
+        .btn-nav:hover { background: #fff; transform: translateY(-2px); }
+        .btn-nav:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        
+        .btn-reset { background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.75em; margin-top: 10px; opacity: 0.7; }
+        .btn-reset:hover { opacity: 1; }
+
+        .feedback { position: fixed; top: 20px; right: 20px; padding: 15px 25px; border-radius: 8px; display: none; z-index: 1000; font-weight: bold; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+
+        /* Modal customizado de confirmação (Evita usar confirm nativo no Moodle) */
+        .modal-reset {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: var(--cor-fundo-escuro);
+            border: 2px solid var(--cor-secundaria);
+            padding: 25px;
+            border-radius: 12px;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .btn-modal {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-confirmar { background: #dc3545; color: white; }
+        .btn-cancelar { background: #6c757d; color: white; }
+    </style>
+</head>
+<body>
+
+<div id="album-moodle-container">
+    <h1>Álbum da Escola</h1>
+    <p class="subtitulo">Resolva a fatoração e arraste o resultado correto para revelar a figurinha!</p>
+
+    <div class="controles">
+        <button id="btnAnterior" class="btn-nav">← Anterior</button>
+        <span id="page-info" style="font-weight: bold;">Página 1</span>
+        <button id="btnProxima" class="btn-nav">Próxima →</button>
+    </div>
+
+    <div class="album-grid" id="albumGrid"></div>
+
+    <div class="pacotinho-container">
+        <span class="pacotinho-titulo">SUAS FIGURINHAS (Resultados Fatorados)</span>
+        <div class="stickers-pool" id="stickersPool"></div>
+    </div>
+
+    <div style="text-align: right;">
+        <button class="btn-reset" onclick="mostrarModalReset()">Reiniciar Álbum</button>
+    </div>
+
+    <div id="feedback" class="feedback"></div>
+</div>
+
+<!-- Modal Customizado para confirmação de reinício -->
+<div id="modalReset" class="modal-reset">
+    <div class="modal-content">
+        <h3 style="color: var(--cor-secundaria); margin-top: 0;">Reiniciar Progresso?</h3>
+        <p>Você perderá todas as figurinhas coladas até agora. Deseja continuar?</p>
+        <div class="modal-buttons">
+            <button class="btn-modal btn-confirmar" onclick="confirmarReset()">Sim, Reiniciar</button>
+            <button class="btn-modal btn-cancelar" onclick="fecharModalReset()">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const database = [
+        { id: 1, n: 20160, f: "2⁶ × 3² × 5 × 7", p: "Andre", img: "https://i.postimg.cc/hv1rg61s/Andre.jpg" },
+        { id: 2, n: 22680, f: "2³ × 3⁴ × 5 × 7", p: "Andrea", img: "https://i.postimg.cc/VvWR1pFP/Andrea.jpg" },
+        { id: 3, n: 25200, f: "2⁴ × 3² × 5² × 7", p: "Aretha", img: "https://i.postimg.cc/BbBgskCZ/Aretha.jpg" },
+        { id: 4, n: 27720, f: "2³ × 3² × 5 × 7 × 11", p: "Camila", img: "https://i.postimg.cc/Kj2N6xBQ/Camila.jpg" },
+        { id: 5, n: 30240, f: "2⁵ × 3³ × 5 × 7", p: "Dalyana", img: "https://i.postimg.cc/2y7wmM7M/Dalyana.jpg" },
+        { id: 6, n: 32400, f: "2⁴ × 3⁴ × 5²", p: "Gustavo", img: "https://i.postimg.cc/j24XKmhd/Gustavo.jpg" },
+        { id: 7, n: 37800, f: "2³ × 3³ × 5² × 7", p: "Helena", img: "https://i.postimg.cc/VvWR1pWT/Helena.jpg" },
+        { id: 8, n: 45360, f: "2⁴ × 3⁴ × 5 × 7", p: "Ikaro", img: "https://i.postimg.cc/L53TRw30/Ikaro.jpg" },
+        { id: 9, n: 50400, f: "2⁵ × 3² × 5² × 7", p: "Inae", img: "https://i.postimg.cc/gjWDCm8T/Inae.jpg" },
+        { id: 10, n: 60480, f: "2⁶ × 3³ × 5 × 7", p: "Luciana", img: "https://i.postimg.cc/ZnxcZ2Lk/Luciana.jpg" },
+        { id: 11, n: 11340, f: "2² × 3⁴ × 5 × 7", p: "Marcela", img: "https://i.postimg.cc/GtCQWdGq/Marcela.jpg" },
+        { id: 12, n: 12600, f: "2³ × 3² × 5² × 7", p: "Milena", img: "https://i.postimg.cc/sxrcks7m/Milena.jpg" },
+        { id: 13, n: 13824, f: "2⁹ × 3³", p: "Paula", img: "https://i.postimg.cc/br9T8W9R/Paula.jpg" },
+        { id: 14, n: 15120, f: "2⁴ × 3³ × 5 × 7", p: "Paulo", img: "https://i.postimg.cc/QC3b2h16/Paulo.jpg" },
+        { id: 15, n: 16200, f: "2³ × 3⁴ × 5²", p: "Roberta", img: "https://i.postimg.cc/BbBgskB7/Roberta.jpg" },
+        { id: 16, n: 18900, f: "2² × 3³ × 5² × 7", p: "Rodrigo", img: "https://i.postimg.cc/j24XKm46/Rodrigo.jpg" },
+        { id: 17, n: 4320, f: "2⁵ × 3³ × 5", p: "Andre", img: "https://i.postimg.cc/hv1rg61s/Andre.jpg" },
+        { id: 18, n: 4860, f: "2² × 3⁵ × 5", p: "Andrea", img: "https://i.postimg.cc/VvWR1pFP/Andrea.jpg" },
+        { id: 19, n: 5400, f: "2³ × 3³ × 5²", p: "Aretha", img: "https://i.postimg.cc/BbBgskCZ/Aretha.jpg" },
+        { id: 20, n: 5832, f: "2³ × 3⁶", p: "Camila", img: "https://i.postimg.cc/Kj2N6xBQ/Camila.jpg" },
+        { id: 21, n: 6300, f: "2² × 3² × 5² × 7", p: "Dalyana", img: "https://i.postimg.cc/2y7wmM7M/Dalyana.jpg" },
+        { id: 22, n: 6720, f: "2⁶ × 3 × 5 × 7", p: "Gustavo", img: "https://i.postimg.cc/j24XKmhd/Gustavo.jpg" },
+        { id: 23, n: 7200, f: "2⁵ × 3² × 5²", p: "Helena", img: "https://i.postimg.cc/VvWR1pWT/Helena.jpg" },
+        { id: 24, n: 7560, f: "2³ × 3³ × 5 × 7", p: "Ikaro", img: "https://i.postimg.cc/L53TRw30/Ikaro.jpg" },
+        { id: 25, n: 8100, f: "2² × 3⁴ × 5²", p: "Inae", img: "https://i.postimg.cc/gjWDCm8T/Inae.jpg" },
+        { id: 26, n: 8640, f: "2⁶ × 3³ × 5", p: "Luciana", img: "https://i.postimg.cc/ZnxcZ2Lk/Luciana.jpg" },
+        { id: 27, n: 9072, f: "2⁴ × 3⁴ × 7", p: "Marcela", img: "https://i.postimg.cc/GtCQWdGq/Marcela.jpg" },
+        { id: 28, n: 9450, f: "2 × 3³ × 5² × 7", p: "Milena", img: "https://i.postimg.cc/sxrcks7m/Milena.jpg" },
+        { id: 29, n: 10080, f: "2⁵ × 3² × 5 × 7", p: "Paula", img: "https://i.postimg.cc/br9T8W9R/Paula.jpg" },
+        { id: 30, n: 10800, f: "2⁴ × 3³ × 5²", p: "Paulo", img: "https://i.postimg.cc/QC3b2h16/Paulo.jpg" }
+    ];
+
+    let currentPage = 0;
+    const itemsPerPage = 6;
+    let solved = JSON.parse(localStorage.getItem('album_fatoracao_progresso_v2')) || {};
+    
+    // Variáveis para gerenciar o embaralhamento estável
+    let currentShuffledPage = -1;
+    let shuffledStickers = [];
+
+    function render() {
+        const grid = document.getElementById('albumGrid');
+        const pool = document.getElementById('stickersPool');
+        const pageInfo = document.getElementById('page-info');
+        
+        grid.innerHTML = ''; 
+        pool.innerHTML = '';
+        
+        const totalPages = Math.ceil(database.length / itemsPerPage);
+        const start = currentPage * itemsPerPage;
+        const currentItems = database.slice(start, start + itemsPerPage);
+
+        // Se mudamos de página, gera uma nova ordem estável e embaralhada para os stickers
+        if (currentShuffledPage !== currentPage) {
+            currentShuffledPage = currentPage;
+            shuffledStickers = [...currentItems].sort(() => Math.random() - 0.5);
+        }
+
+        // Verifica se todas as figurinhas da página atual foram resolvidas/coladas
+        const todasResolvidas = currentItems.every(item => solved[item.id]);
+
+        pageInfo.innerText = `Página ${currentPage + 1} de ${totalPages}`;
+        document.getElementById('btnAnterior').disabled = currentPage === 0;
+        // O botão Próxima só ativa se não for a última página E todas as figurinhas da página atual estiverem resolvidas
+        document.getElementById('btnProxima').disabled = (currentPage === totalPages - 1) || !todasResolvidas;
+
+        currentItems.forEach(item => {
+            const slot = document.createElement('div');
+            slot.className = 'slot';
+            slot.dataset.id = item.id;
+
+            if (solved[item.id]) {
+                const imgHTML = item.img.startsWith('http') ? `<img src="${item.img}" class="foto-colorida" alt="${item.p}">` : `<div style="padding:15px; text-align:center; color:var(--cor-secundaria); font-weight:bold; z-index:11;">✨ ${item.p}</div>`;
+                slot.innerHTML = imgHTML;
+                slot.style.border = 'none';
+            } else {
+                const imgHTML = item.img.startsWith('http') ? `<img src="${item.img}" class="foto-pb">` : '';
+                // Nome do professor removido e fundo com classe .foto-pb desbotada/desfocada
+                slot.innerHTML = `
+                    ${imgHTML}
+                    <div class="slot-numero" style="font-size: ${item.n > 9999 ? '1.9em' : '2.5em'}">${item.n}</div>
+                `;
+                
+                slot.ondragover = (e) => e.preventDefault();
+                slot.ondragenter = () => slot.classList.add('drag-over');
+                slot.ondragleave = () => slot.classList.remove('drag-over');
+                slot.ondrop = (e) => {
+                    e.preventDefault();
+                    const draggedId = e.dataTransfer.getData('text');
+                    handleMatch(draggedId, item.id);
+                };
+            }
+            grid.appendChild(slot);
+        });
+
+        // Apresenta as figurinhas usando a nossa ordem estável e embaralhada
+        shuffledStickers.forEach(item => {
+            if (!solved[item.id]) {
+                const sticker = document.createElement('div');
+                sticker.className = 'sticker';
+                sticker.draggable = true;
+                sticker.innerText = item.f;
+                sticker.dataset.id = item.id;
+                sticker.ondragstart = (e) => e.dataTransfer.setData('text', item.id);
+                
+                sticker.addEventListener('touchstart', handleTouchStart, {passive: false});
+                sticker.addEventListener('touchmove', handleTouchMove, {passive: false});
+                sticker.addEventListener('touchend', handleTouchEnd);
+
+                pool.appendChild(sticker);
+            }
+        });
+    }
+
+    function handleMatch(draggedId, slotId) {
+        if (draggedId == slotId) {
+            solved[slotId] = true;
+            localStorage.setItem('album_fatoracao_progresso_v2', JSON.stringify(solved));
+            showFeedback("✨ Incrível! Fatoração correta!", "#28a745");
+            render();
+        } else {
+            showFeedback("Ops! Esse resultado não pertence a este número.", "#dc3545");
+            document.querySelectorAll('.slot').forEach(s => s.classList.remove('drag-over'));
+        }
+    }
+
+    // Modal de reiniciar customizado
+    function mostrarModalReset() {
+        document.getElementById('modalReset').style.display = 'flex';
+    }
+
+    function fecharModalReset() {
+        document.getElementById('modalReset').style.display = 'none';
+    }
+
+    function confirmarReset() {
+        solved = {};
+        localStorage.removeItem('album_fatoracao_progresso_v2');
+        currentPage = 0;
+        currentShuffledPage = -1; // Força re-embaralhar na primeira página
+        fecharModalReset();
+        render();
+        showFeedback("Progresso reiniciado com sucesso!", "#0033a0");
+    }
+
+    function showFeedback(msg, color) {
+        const fb = document.getElementById('feedback');
+        fb.innerText = msg; fb.style.backgroundColor = color; fb.style.display = 'block';
+        setTimeout(() => { fb.style.display = 'none'; }, 2500);
+    }
+
+    document.getElementById('btnAnterior').onclick = () => { currentPage--; render(); };
+    document.getElementById('btnProxima').onclick = () => { currentPage++; render(); };
+
+    let touchItem = null;
+    function handleTouchStart(e) {
+        touchItem = e.target;
+        touchItem.style.opacity = "0.5";
+    }
+    function handleTouchMove(e) {
+        if (!touchItem) return;
+        e.preventDefault();
+        let touch = e.touches[0];
+        touchItem.style.position = 'fixed';
+        touchItem.style.zIndex = '9999';
+        touchItem.style.left = touch.clientX - 60 + 'px';
+        touchItem.style.top = touch.clientY - 27 + 'px';
+    }
+    function handleTouchEnd(e) {
+        if (!touchItem) return;
+        touchItem.style.opacity = "1";
+        
+        let touch = e.changedTouches[0];
+        let targetSlot = document.elementFromPoint(touch.clientX, touch.clientY);
+        let slot = targetSlot ? targetSlot.closest('.slot') : null;
+
+        if (slot) {
+            handleMatch(touchItem.dataset.id, slot.dataset.id);
+        }
+        touchItem = null;
+        render();
+    }
+
+    window.onload = render;
+</script>
+
+</body>
+</html>
